@@ -9,7 +9,7 @@ X_SIZE = 500
 Y_SIZE = 500
 screen_size = (X_SIZE, Y_SIZE)
 
-CENTER = [X_SIZE/2, Y_SIZE/2, X_SIZE/2]
+CENTER_POINT = [X_SIZE/2, Y_SIZE/2, X_SIZE/2]
 RADIUS = 100
 LIGHT_SOURCE_POSITION = [400, 400, 0]
 OBSERVER_POSITION = [200, 200, 0]
@@ -17,6 +17,7 @@ OBSERVER_POSITION = [200, 200, 0]
 X = 0
 Y = 1 
 Z = 2
+
 STEP = 100 
 
 move_keys = {
@@ -29,49 +30,32 @@ move_keys = {
 }
 
 def find_z_coordinate(x, y):
-    b = -2 * CENTER[2]
-    c = CENTER[2]**2 + (x - CENTER[0])**2 + (y - CENTER[1])**2 - RADIUS**2
-
+    b = -2 * CENTER_POINT[2]
+    c = CENTER_POINT[2]**2 + (x - CENTER_POINT[0])**2 + (y - CENTER_POINT[1])**2 - RADIUS**2
     delta = b**2 - 4*c
 
     if delta == 0:
         return -b/2
     elif delta > 0:
-        z1 = (sqrt(delta) - b) / 2
-        z2 = (-sqrt(delta) - b) / 2
-        return min(z1, z2)
-
-def illumination(point):
-    Ia = 5      # natężenie światła w otoczeniu obiektu
-    Ip = 1      # natężenie światła punktowego
-    Ka = 0.05   # współczynnik odbicia światła otoczenia
-    Ks = 0.5    # współczynnik odbicia światła kierunkowego 
-    Kd = 0.1    # współczynnik odbicia światła rozproszonego 
-    N = 5       # współczynnik gładkości powierzchni
-
-    n = versor(vector(CENTER, point))
-    v = versor(vector(point, OBSERVER_POSITION))
-    l = versor(vector(point, LIGHT_SOURCE_POSITION))
-    r = versor(subtract(multiply(multiply(n, 2), multiply(n, l)), l))
-
-    return Ia * Ka + Ip * Kd * max(dot(n, l), 0) + Ks * max(dot(r, v), 0)**N
+        return min((sqrt(delta) - b) / 2, (-sqrt(delta) - b) / 2)
 
 def f_att(r):    # współczynnik tłumienia źródła z odległością
     C = 0.25
 
-    return min(1/C + r, 1)
+    return min(1/(C+r), 1)
 
-def phong_illumination(point):
+def phong_model_function(point):
     Ia = 2      # natężenie światła w otoczeniu obiektu
-    Ip = 1    # natężenie światła punktowego
+    Ip = 1      # natężenie światła punktowego
     Ka = 0.05   # współczynnik odbicia światła otoczenia
+
     Ks = 0      # współczynnik odbicia światła kierunkowego 
     Kd = 0.5    # współczynnik odbicia światła rozproszonego 
     n = 1       # współczynnik gładkości powierzchni
 
     #F = f_att()
 
-    N = versor(vector(CENTER, point))
+    N = versor(vector(CENTER_POINT, point))
     L = versor(vector(point, LIGHT_SOURCE_POSITION))
     V = versor(vector(point, OBSERVER_POSITION))
     R = versor(subtract(multiply(multiply(N, 2), multiply(N, L)), L))
@@ -93,11 +77,9 @@ def draw():
         coords = (x, Y_SIZE - y)
         z = find_z_coordinate(x, y)
         if z:
-            ilumination = phong_illumination([x, y, z])
+            ilumination = phong_model_function([x, y, z])
             intensity = min(int(ilumination * 255), 255)
             screen.set_at(coords, colorsys.hsv_to_rgb(0.2, 1, intensity))
-        else:
-            screen.set_at(coords, 'black')
 
 
 def move(step, coord):
