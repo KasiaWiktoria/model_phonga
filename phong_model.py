@@ -3,7 +3,7 @@ from pygame import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PERIOD, K_COMMA
 from itertools import product
 from numpy import multiply, subtract, dot
 from math import sqrt
-import colorsys
+from colorsys import hsv_to_rgb
 
 X_SIZE = 500
 Y_SIZE = 500
@@ -11,8 +11,8 @@ screen_size = (X_SIZE, Y_SIZE)
 
 CENTER_POINT = [X_SIZE/2, Y_SIZE/2, X_SIZE/2]
 RADIUS = 100
-LIGHT_SOURCE_POSITION = [400, 400, 0]
-OBSERVER_POSITION = [200, 200, 0]
+LIGHT_SOURCE_POSITION = [250, 400, -300]
+OBSERVER_POSITION = [250, 250, 0]
 
 X = 0
 Y = 1 
@@ -20,14 +20,17 @@ Z = 2
 
 STEP = 100 
 
-move_keys = {
-    K_UP: lambda: move(STEP, Y),
-    K_DOWN: lambda: move(-STEP, Y),
-    K_RIGHT: lambda: move(STEP, X),
-    K_LEFT: lambda: move(-STEP, X),
-    K_PERIOD: lambda: move(STEP, Z),
-    K_COMMA: lambda: move(-STEP, Z),
-}
+Ia = 1      # natężenie światła w otoczeniu obiektu
+Ip = 1      # natężenie światła punktowego
+Ka = 0.1    # współczynnik odbicia światła otoczenia
+
+Ks = 0.5      # współczynnik odbicia światła kierunkowego 
+Kd = 0.45    # współczynnik odbicia światła rozproszonego 
+n = 27       # współczynnik gładkości powierzchni
+
+move_keys = { K_UP: lambda: move(STEP, Y), K_DOWN: lambda: move(-STEP, Y), K_RIGHT: lambda: move(STEP, X), 
+            K_LEFT: lambda: move(-STEP, X), K_PERIOD: lambda: move(STEP, Z), K_COMMA: lambda: move(-STEP, Z)}
+
 
 def find_z_coordinate(x, y):
     b = -2 * CENTER_POINT[2]
@@ -37,54 +40,65 @@ def find_z_coordinate(x, y):
     if delta == 0:
         return -b/2
     elif delta > 0:
-        return min((sqrt(delta) - b) / 2, (-sqrt(delta) - b) / 2)
+        return min((sqrt(delta) - b)/2, (-sqrt(delta) - b)/2)
+
+def calculate_light_source_distance(point):
+    x_diff = LIGHT_SOURCE_POSITION[X] - point[X]
+    y_diff = LIGHT_SOURCE_POSITION[Y] - point[Y]
+    z_diff = LIGHT_SOURCE_POSITION[Z] - point[Z]
+
+    return sqrt((x_diff)**2 + (y_diff)**2 + (z_diff)**2) / 1000
 
 def f_att(r):    # współczynnik tłumienia źródła z odległością
-    C = 0.25
+    C1 = 0.05
+    C2 = 0.25
+    C3 = 0.25
 
-    return min(1/(C+r), 1)
+    return min(1/(C1 + C2*r +C3*r**2), 1)
 
-def phong_model_function(point):
-    Ia = 2      # natężenie światła w otoczeniu obiektu
-    Ip = 1      # natężenie światła punktowego
-    Ka = 0.05   # współczynnik odbicia światła otoczenia
-
-    Ks = 0      # współczynnik odbicia światła kierunkowego 
-    Kd = 0.5    # współczynnik odbicia światła rozproszonego 
-    n = 1       # współczynnik gładkości powierzchni
-
-    #F = f_att()
-
-    N = versor(vector(CENTER_POINT, point))
+def calculate_light_intensity(point):
+    N = normal_vector(point)
     L = versor(vector(point, LIGHT_SOURCE_POSITION))
     V = versor(vector(point, OBSERVER_POSITION))
     R = versor(subtract(multiply(multiply(N, 2), multiply(N, L)), L))
 
-    return Ia*Ka + Ip * (Kd*max(dot(N,L), 0) + Ks*max(dot(R,V),0)**n)
+    r = calculate_light_source_distance(point)
+    f = f_att(r)
 
+    I = phong_model_function(Ia, Ip, Ka, Kd, Ks, f, N, L, R, V, n)
+
+    return I
+
+def normal_vector(point):
+    return versor(vector(CENTER_POINT, point))
+
+def phong_model_function(Ia, Ip, Ka, Kd, Ks, f, N, L, R, V, n):
+
+    ambient_light = Ia * Ka
+    diffuse_reflection = Ip * f * Kd * max(dot(N,L), 0)
+    directional_reflection = Ip * f * Ks * max(dot(R,V),0)**n
+
+    return ambient_light + diffuse_reflection + directional_reflection
 
 def vector(start_point, end_point):
     return [end_point[0] - start_point[0], end_point[1] - start_point[1], end_point[2] - start_point[2]]
-
 
 def versor(vector):
     n = sqrt(sum(e**2 for e in vector))
     return [e / n for e in vector]
 
-
 def draw():
     for x, y in product(range(X_SIZE), range(Y_SIZE)):
-        coords = (x, Y_SIZE - y)
         z = find_z_coordinate(x, y)
         if z:
-            ilumination = phong_model_function([x, y, z])
-            intensity = min(int(ilumination * 255), 255)
-            screen.set_at(coords, colorsys.hsv_to_rgb(0.2, 1, intensity))
+            ilumination = calculate_light_intensity([x, y, z])
+            light_intensity = min(int(ilumination * 255), 255)
+            screen.set_at((x, Y_SIZE - y), hsv_to_rgb(0.07, 0.7, light_intensity))
 
 
 def move(step, coord):
     LIGHT_SOURCE_POSITION[coord] += step
-
+    print(f'Pozycja źródła światła: {LIGHT_SOURCE_POSITION}')
 
 pygame.init()
 screen = pygame.display.set_mode(screen_size)
