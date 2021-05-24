@@ -54,10 +54,10 @@ def versor(vector):
 def illumination(point):
     IA = 1
     IP = 1
-    KA = 0.05
-    KD = 0.5
+    KA = 0.1
+    KD = 0.45
     KS = 0.5
-    N = 5
+    N = 27
 
     n = versor(vector(CENTER, point))
     v = versor(vector(point, OBSERVER))

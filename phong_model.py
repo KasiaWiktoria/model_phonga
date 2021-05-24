@@ -3,30 +3,32 @@ from pygame import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_PERIOD, K_COMMA
 from itertools import product
 from numpy import multiply, subtract, dot
 from math import sqrt
-from colorsys import hsv_to_rgb
+from colorsys import hls_to_rgb, hsv_to_rgb
 
-X_SIZE = 500
-Y_SIZE = 500
+X_SIZE = 400
+Y_SIZE = 400
 screen_size = (X_SIZE, Y_SIZE)
 
 CENTER_POINT = [X_SIZE/2, Y_SIZE/2, X_SIZE/2]
 RADIUS = 100
-LIGHT_SOURCE_POSITION = [250, 400, -300]
-OBSERVER_POSITION = [250, 250, 0]
+LIGHT_SOURCE_POSITION = [150, 250, 0]
+OBSERVER_POSITION = [200, 200, 0]
+
+BALL_COLOR = 0.2
 
 X = 0
 Y = 1 
 Z = 2
 
-STEP = 100 
+STEP = 50 
 
 Ia = 1      # natężenie światła w otoczeniu obiektu
-Ip = 1      # natężenie światła punktowego
-Ka = 0.1    # współczynnik odbicia światła otoczenia
+Ip = 2      # natężenie światła punktowego
+Ka = 0.3    # współczynnik odbicia światła otoczenia
 
-Ks = 0.5      # współczynnik odbicia światła kierunkowego 
-Kd = 0.45    # współczynnik odbicia światła rozproszonego 
-n = 27       # współczynnik gładkości powierzchni
+Ks = 0.2      # współczynnik odbicia światła kierunkowego 
+Kd = 0.2    # współczynnik odbicia światła rozproszonego 
+n = 100       # współczynnik gładkości powierzchni
 
 move_keys = { K_UP: lambda: move(STEP, Y), K_DOWN: lambda: move(-STEP, Y), K_RIGHT: lambda: move(STEP, X), 
             K_LEFT: lambda: move(-STEP, X), K_PERIOD: lambda: move(STEP, Z), K_COMMA: lambda: move(-STEP, Z)}
@@ -47,11 +49,11 @@ def calculate_light_source_distance(point):
     y_diff = LIGHT_SOURCE_POSITION[Y] - point[Y]
     z_diff = LIGHT_SOURCE_POSITION[Z] - point[Z]
 
-    return sqrt((x_diff)**2 + (y_diff)**2 + (z_diff)**2) / 1000
+    return sqrt((x_diff)**2 + (y_diff)**2 + (z_diff)**2)
 
 def f_att(r):    # współczynnik tłumienia źródła z odległością
-    C1 = 0.05
-    C2 = 0.25
+    C1 = 0.1
+    C2 = 0.2
     C3 = 0.25
 
     return min(1/(C1 + C2*r +C3*r**2), 1)
@@ -62,12 +64,12 @@ def calculate_light_intensity(point):
     V = versor(vector(point, OBSERVER_POSITION))
     R = versor(subtract(multiply(multiply(N, 2), multiply(N, L)), L))
 
-    r = calculate_light_source_distance(point)
+    r = calculate_light_source_distance(point) / 100
     f = f_att(r)
 
     I = phong_model_function(Ia, Ip, Ka, Kd, Ks, f, N, L, R, V, n)
 
-    return I
+    return min(I, 1)
 
 def normal_vector(point):
     return versor(vector(CENTER_POINT, point))
@@ -88,12 +90,19 @@ def versor(vector):
     return [e / n for e in vector]
 
 def draw():
-    for x, y in product(range(X_SIZE), range(Y_SIZE)):
+    x_range = range(X_SIZE)
+    y_range = range(Y_SIZE)
+
+    for x, y in product(x_range, y_range):
         z = find_z_coordinate(x, y)
+
         if z:
             ilumination = calculate_light_intensity([x, y, z])
-            light_intensity = min(int(ilumination * 255), 255)
-            screen.set_at((x, Y_SIZE - y), hsv_to_rgb(0.07, 0.7, light_intensity))
+            r, g, b = hsv_to_rgb(BALL_COLOR, 0.8, ilumination)
+            #r, g, b = hls_to_rgb(BALL_COLOR, ilumination, 0.8)
+            color = (255*r,255*g,255*b)
+
+            screen.set_at((x, Y_SIZE - y), color)
 
 
 def move(step, coord):
