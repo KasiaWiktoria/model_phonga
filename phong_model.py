@@ -14,7 +14,8 @@ RADIUS = 100
 LIGHT_SOURCE_POSITION = [150, 250, 0]
 OBSERVER_POSITION = [200, 200, 0]
 
-BALL_COLOR = 0.2
+BALL_COLOR = 0.1
+COLOR_SATURATION = 0.5
 
 X = 0
 Y = 1 
@@ -23,12 +24,12 @@ Z = 2
 STEP = 50 
 
 Ia = 1      # natężenie światła w otoczeniu obiektu
-Ip = 2      # natężenie światła punktowego
-Ka = 0.3    # współczynnik odbicia światła otoczenia
+Ip = 1      # natężenie światła punktowego
+Ka = 0.2    # współczynnik odbicia światła otoczenia
 
-Ks = 0.2      # współczynnik odbicia światła kierunkowego 
-Kd = 0.2    # współczynnik odbicia światła rozproszonego 
-n = 100       # współczynnik gładkości powierzchni
+Ks = 0.1     # współczynnik odbicia światła kierunkowego 
+Kd = 0.4    # współczynnik odbicia światła rozproszonego 
+n = 10      # współczynnik gładkości powierzchni
 
 move_keys = { K_UP: lambda: move(STEP, Y), K_DOWN: lambda: move(-STEP, Y), K_RIGHT: lambda: move(STEP, X), 
             K_LEFT: lambda: move(-STEP, X), K_PERIOD: lambda: move(STEP, Z), K_COMMA: lambda: move(-STEP, Z)}
@@ -98,8 +99,8 @@ def draw():
 
         if z:
             ilumination = calculate_light_intensity([x, y, z])
-            r, g, b = hsv_to_rgb(BALL_COLOR, 0.8, ilumination)
-            #r, g, b = hls_to_rgb(BALL_COLOR, ilumination, 0.8)
+            #r, g, b = hsv_to_rgb(BALL_COLOR, 0.8, ilumination)
+            r, g, b = hls_to_rgb(BALL_COLOR, ilumination, COLOR_SATURATION)
             color = (255*r,255*g,255*b)
 
             screen.set_at((x, Y_SIZE - y), color)
